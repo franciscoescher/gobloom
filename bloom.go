@@ -23,7 +23,7 @@ func NewBloomFilter(n uint64, p float64) (*BloomFilter, error) {
 	return NewBloomFilterWithHasher(n, p, NewMurMur3Hasher())
 }
 
-// NewBloomFilter creates a new Bloom filter with the given number of elements (n) and false positive rate (p).
+// NewBloomFilterWithHasher creates a new Bloom filter with the given number of elements (n) and false positive rate (p).
 func NewBloomFilterWithHasher(n uint64, p float64, h Hasher) (*BloomFilter, error) {
 	if n == 0 {
 		return nil, fmt.Errorf("number of elements cannot be 0")
