@@ -87,13 +87,3 @@ func (bf *BloomFilter) Test(data []byte) bool {
 	}
 	return true
 }
-
-// Add adds an item to the Bloom filter.
-func (bf *BloomFilter) AddString(item string) {
-	bf.Add([]byte(item))
-}
-
-// Test checks if an item is in the Bloom filter.
-func (bf *BloomFilter) TestString(item string) bool {
-	return bf.Test([]byte(item))
-}

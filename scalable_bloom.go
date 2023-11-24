@@ -144,13 +144,3 @@ func (sbf *ScalableBloomFilter) Test(data []byte) bool {
 	// If none of the filters had all bits set, the item is definitely not in the set.
 	return false
 }
-
-// TestString is a convenience function for testing a string item.
-func (sbf *ScalableBloomFilter) TestString(item string) bool {
-	return sbf.Test([]byte(item))
-}
-
-// AddString is a convenience function for adding a string item.
-func (sbf *ScalableBloomFilter) AddString(item string) {
-	sbf.Add([]byte(item))
-}
