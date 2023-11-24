@@ -43,11 +43,6 @@ func NewBloomFilterWithHasher(n uint64, p float64, h Hasher) (*BloomFilter, erro
 	}, nil
 }
 
-// GetParams returns the parameters of the Bloom filter: the number of bits in the bit set (m) and the number of hash functions (k).
-func (bf *BloomFilter) GetParams() (uint64, uint64) {
-	return bf.m, bf.k
-}
-
 // getOptimalParams calculates the optimal parameters for the Bloom filter,
 // the number of bits in the bit set (m) and the number of hash functions (k).
 func getOptimalParams(n uint64, p float64) (uint64, uint64) {
