@@ -32,7 +32,7 @@ func NewBloomFilterWithHasher(n uint64, p float64, h Hasher) (*BloomFilter, erro
 	if h == nil {
 		return nil, fmt.Errorf("hasher cannot be nil")
 	}
-	m, k := getOtimalParams(n, p)
+	m, k := getOptimalParams(n, p)
 	return &BloomFilter{
 		m:      m,
 		k:      k,
@@ -46,9 +46,9 @@ func (bf *BloomFilter) GetParams() (uint64, uint64) {
 	return bf.m, bf.k
 }
 
-// getOtimalParams calculates the optimal parameters for the Bloom filter,
+// getOptimalParams calculates the optimal parameters for the Bloom filter,
 // the number of bits in the bit set (m) and the number of hash functions (k).
-func getOtimalParams(n uint64, p float64) (uint64, uint64) {
+func getOptimalParams(n uint64, p float64) (uint64, uint64) {
 	m := uint64(math.Ceil(-1 * float64(n) * math.Log(p) / math.Pow(math.Log(2), 2)))
 	if m == 0 {
 		m = 1
