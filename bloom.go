@@ -8,11 +8,6 @@ import (
 
 var _ Interface = (*BloomFilter)(nil)
 
-// Hasher is an interface for a hash function that returns a slice of hash.Hash64.
-type Hasher interface {
-	GetHashes(n uint64) []hash.Hash64
-}
-
 // BloomFilter represents a single Bloom filter structure.
 type BloomFilter struct {
 	m      uint64        // The number of bits in the bit set

@@ -6,8 +6,9 @@ import (
 	"github.com/spaolacci/murmur3"
 )
 
-type MurMur3Hasher struct {
-}
+type MurMur3Hasher struct{}
+
+var _ Hasher = (*MurMur3Hasher)(nil)
 
 func NewMurMur3Hasher() *MurMur3Hasher {
 	return &MurMur3Hasher{}
