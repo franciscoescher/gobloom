@@ -58,7 +58,7 @@ type ScalableBloomFilter struct {
 //   - As with any Bloom filter, using multiple, independent hash functions improves the spread of elements
 //     across the bit set. In a Scalable Bloom Filter, these hash functions need to maintain their properties
 //     as additional layers are added.
-func NewScalableBloomFilter(initialSize uint64, fpRate float64, fpGrowth float64) (*ScalableBloomFilter, error) {
+func NewScalableBloomFilterWithHasher(initialSize uint64, fpRate float64, fpGrowth float64, h Hasher) (*ScalableBloomFilter, error) {
 	if initialSize <= 0 {
 		return nil, errors.New("invalid initial size, must be greater than 0")
 	}
@@ -69,7 +69,7 @@ func NewScalableBloomFilter(initialSize uint64, fpRate float64, fpGrowth float64
 		return nil, fmt.Errorf("invalid false positive growth rate, must be greater than 0, got %f", fpGrowth)
 	}
 
-	bf, err := NewBloomFilter(initialSize, fpRate)
+	bf, err := NewBloomFilterWithHasher(initialSize, fpRate, h)
 	if err != nil {
 		return nil, err
 	}
@@ -81,6 +81,11 @@ func NewScalableBloomFilter(initialSize uint64, fpRate float64, fpGrowth float64
 		fpGrowth: fpGrowth,           // Set the growth rate for false positives as the filter scales
 		n:        0,                  // Initialize with zero elements added
 	}, nil
+}
+
+// NewScalableBloomFilter initializes a new scalable Bloom filter with the standard MurMur3 hasher.
+func NewScalableBloomFilter(initialSize uint64, fpRate float64, fpGrowth float64) (*ScalableBloomFilter, error) {
+	return NewScalableBloomFilterWithHasher(initialSize, fpRate, fpGrowth, NewMurMur3Hasher())
 }
 
 // Add inserts the given item into the scalable Bloom filter.
