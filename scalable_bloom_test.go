@@ -47,7 +47,7 @@ func TestScalableBloomFilter_FalsePositiveRate(t *testing.T) {
 	}
 
 	observedFpRate := float64(falsePositives) / float64(numTests)
-	if observedFpRate > 1.5*fpRate {
+	if observedFpRate > 1.15*fpRate {
 		t.Errorf("False positive rate is too high: got %.3f%%, want at most %.3f%%", observedFpRate*100, fpRate*100)
 	}
 }

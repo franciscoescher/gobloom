@@ -50,7 +50,7 @@ func TestBloomFilter_FalsePositiveRate(t *testing.T) {
 	}
 
 	estimatedFalsePositiveRate := float64(falsePositives) / float64(n)
-	if estimatedFalsePositiveRate > (p * 1.5) {
+	if estimatedFalsePositiveRate > (p * 1.15) {
 		t.Errorf("Estimated false positive rate is higher than expected: got %.3f%% (%d/%d), want <= %.3f%%",
 			estimatedFalsePositiveRate*100, falsePositives, n, p*100)
 	}
