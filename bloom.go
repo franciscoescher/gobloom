@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash"
 	"math"
+	"sync"
 )
 
 var _ Interface = (*BloomFilter)(nil)
@@ -14,6 +15,7 @@ type BloomFilter struct {
 	bitSet []bool        // The bit array represented as a slice of bool
 	k      uint64        // The number of hash functions to use
 	hashes []hash.Hash64 // The hash functions to use
+	mutex  sync.Mutex    // Mutex to ensure thread safety
 }
 
 // NewBloomFilter creates a new Bloom filter with the given number of elements (n) and false positive rate (p).
@@ -62,6 +64,8 @@ func getOptimalParams(n uint64, p float64) (uint64, uint64) {
 
 // Add adds an item to the Bloom filter.
 func (bf *BloomFilter) Add(data []byte) {
+	bf.mutex.Lock()
+	defer bf.mutex.Unlock()
 	for _, hash := range bf.hashes {
 		hash.Reset()
 		hash.Write(data)
@@ -71,6 +75,8 @@ func (bf *BloomFilter) Add(data []byte) {
 }
 
 func (bf *BloomFilter) Test(data []byte) bool {
+	bf.mutex.Lock()
+	defer bf.mutex.Unlock()
 	for _, hash := range bf.hashes {
 		hash.Reset()
 		hash.Write(data)
