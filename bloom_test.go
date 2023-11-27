@@ -18,7 +18,11 @@ func TestBloomFilter_AddAndTest(t *testing.T) {
 	item := "test-item"
 	bf.Add([]byte(item))
 
-	if !bf.Test([]byte(item)) {
+	b, err := bf.Test([]byte(item))
+	if err != nil {
+		t.Errorf("Failed to test item '%s': %s", item, err)
+	}
+	if !b {
 		t.Errorf("Item '%s' should be present in the Bloom filter, but it's not.", item)
 	}
 }
@@ -44,7 +48,11 @@ func TestBloomFilter_FalsePositiveRate(t *testing.T) {
 	falsePositives := 0
 	for i := uint64(0); i < n; i++ {
 		item := fmt.Sprintf("different-item-%d", i)
-		if bf.Test([]byte(item)) {
+		b, err := bf.Test([]byte(item))
+		if err != nil {
+			t.Errorf("Failed to test item '%s': %s", item, err)
+		}
+		if b {
 			falsePositives++
 		}
 	}
@@ -66,7 +74,11 @@ func TestBloomFilter_AddTestNonExistentItem(t *testing.T) {
 		t.Errorf("Failed to create Bloom filter: %s", err)
 	}
 
-	if bf.Test([]byte("non-existent-item")) {
+	b, err := bf.Test([]byte("non-existent-item"))
+	if err != nil {
+		t.Errorf("Failed to test item: %s", err)
+	}
+	if b {
 		t.Errorf("Non-existent item should not be present in the Bloom filter.")
 	}
 }

@@ -14,7 +14,11 @@ func TestScalableBloomFilter_AddAndTest(t *testing.T) {
 	testItem := "example"
 	sbf.Add([]byte(testItem))
 
-	if !sbf.Test([]byte(testItem)) {
+	b, err := sbf.Test([]byte(testItem))
+	if err != nil {
+		t.Errorf("Failed to test item '%s': %s", testItem, err)
+	}
+	if !b {
 		t.Errorf("Expected item '%s' to be in the filter", testItem)
 	}
 }
@@ -41,7 +45,12 @@ func TestScalableBloomFilter_FalsePositiveRate(t *testing.T) {
 	// Test for false positives
 	numTests := uint64(5000)
 	for i := numElements; i < numElements+numTests; i++ {
-		if sbf.Test([]byte(strconv.FormatUint(i, 10))) {
+		testItem := []byte(strconv.FormatUint(i, 10))
+		b, err := sbf.Test(testItem)
+		if err != nil {
+			t.Errorf("Failed to test item '%s': %s", testItem, err)
+		}
+		if b {
 			falsePositives++
 		}
 	}

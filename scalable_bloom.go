@@ -106,11 +106,14 @@ func applyDefaultsScalable(p *ParamsScalable) {
 
 // Add inserts the given item into the scalable Bloom filter.
 // If the current filter slice exceeds its capacity based on the growth rate, a new slice is added.
-func (sbf *ScalableBloomFilter) Add(data []byte) {
+func (sbf *ScalableBloomFilter) Add(data []byte) error {
 	// Add the item to all existing filter slices.
 	for _, filter := range sbf.filters {
 		for i := uint64(0); i < filter.k; i++ {
-			filter.Add(data)
+			err := filter.Add(data)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -132,9 +135,10 @@ func (sbf *ScalableBloomFilter) Add(data []byte) {
 		nbf, _ := New(Params{N: sbf.n, FalsePositiveRate: newFpRate})
 		sbf.filters = append(sbf.filters, nbf)
 	}
+	return nil
 }
 
-func (sbf *ScalableBloomFilter) Test(data []byte) bool {
+func (sbf *ScalableBloomFilter) Test(data []byte) (bool, error) {
 	// Check the item against all filter slices from the oldest to the newest.
 	for _, filter := range sbf.filters {
 		// Assume the item is in the filter until proven otherwise.
@@ -143,7 +147,11 @@ func (sbf *ScalableBloomFilter) Test(data []byte) bool {
 		// Use the same hash functions that were used to add the item.
 		for i := uint64(0); i < filter.k; i++ {
 			// If any of the bits corresponding to the item's hash values are not set, it's definitely not present in this filter.
-			if !filter.Test(data) {
+			b, err := filter.Test(data)
+			if err != nil {
+				return false, err
+			}
+			if !b {
 				isPresent = false
 				// We break out of the hash function loop as soon as we find a bit that is not set.
 				break
@@ -152,11 +160,11 @@ func (sbf *ScalableBloomFilter) Test(data []byte) bool {
 
 		// If all the bits for this filter are set, then the item is potentially present (with some false positive rate).
 		if isPresent {
-			return true
+			return true, nil
 		}
 		// Otherwise, continue checking the next filter to see if the item may be present there.
 	}
 
 	// If none of the filters had all bits set, the item is definitely not in the set.
-	return false
+	return false, nil
 }

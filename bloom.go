@@ -94,36 +94,43 @@ func getOptimalParams(n uint64, p float64) (uint64, uint64) {
 }
 
 // Add adds an item to the Bloom filter.
-func (bf *BloomFilter) Add(data []byte) {
+func (bf *BloomFilter) Add(data []byte) error {
 	if bf.mutex != nil {
 		bf.mutex.Lock()
 		defer bf.mutex.Unlock()
 	}
 	for _, hash := range bf.hashes {
 		hash.Reset()
-		hash.Write(data)
+		_, err := hash.Write(data)
+		if err != nil {
+			return err
+		}
 		hashValue := hash.Sum64() % bf.m
 		index := hashValue / 64    // Find the index in the bitSet
 		position := hashValue % 64 // Find the position in the uint64
 		bf.bitSet[index] |= 1 << position
 	}
+	return nil
 }
 
 // Test checks if an item is in the Bloom filter.
-func (bf *BloomFilter) Test(data []byte) bool {
+func (bf *BloomFilter) Test(data []byte) (bool, error) {
 	if bf.mutex != nil {
 		bf.mutex.RLock()
 		defer bf.mutex.RUnlock()
 	}
 	for _, hash := range bf.hashes {
 		hash.Reset()
-		hash.Write(data)
+		_, err := hash.Write(data)
+		if err != nil {
+			return false, err
+		}
 		hashValue := hash.Sum64() % bf.m
 		index := hashValue / 64    // Find the index in the bitSet
 		position := hashValue % 64 // Find the position in the uint64
 		if bf.bitSet[index]&(1<<position) == 0 {
-			return false
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }

@@ -3,8 +3,8 @@ package gobloom
 import "hash"
 
 type Interface interface {
-	Add([]byte)
-	Test([]byte) bool
+	Add([]byte) error
+	Test([]byte) (bool, error)
 }
 
 // Hasher is an interface for a hash function that returns a slice of hash.Hash64.
