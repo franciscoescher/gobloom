@@ -17,7 +17,16 @@ type ScalableBloomFilter struct {
 	fpGrowth float64        // Factor by which the false positive probability should increase for each additional filter slice
 }
 
-// NewScalableBloomFilter initializes a new scalable Bloom filter with an estimated initial size,
+// ParamsScalable represents the parameters for creating a new scalable Bloom filter.
+type ParamsScalable struct {
+	InitialSize         uint64
+	FalsePositiveRate   float64
+	FalsePositiveGrowth float64
+	Hasher              Hasher
+	LockType            LockType
+}
+
+// NewScalableBloom initializes a new scalable Bloom filter with an estimated initial size,
 // target false positive rate, and growth rate for the false positive probability with each new filter slice.
 // It is essential to carefully select these values based on the use-case requirements to maintain
 // system performance and desired accuracy as the dataset grows.
@@ -58,34 +67,46 @@ type ScalableBloomFilter struct {
 //   - As with any Bloom filter, using multiple, independent hash functions improves the spread of elements
 //     across the bit set. In a Scalable Bloom Filter, these hash functions need to maintain their properties
 //     as additional layers are added.
-func NewScalableBloomFilterWithHasher(initialSize uint64, fpRate float64, fpGrowth float64, h Hasher) (*ScalableBloomFilter, error) {
-	if initialSize <= 0 {
+func NewScalable(p ParamsScalable) (*ScalableBloomFilter, error) {
+	applyDefaultsScalable(&p)
+	// initialSize uint64, fpRate float64, fpGrowth float64, h Hasher, l LockType
+	if p.InitialSize <= 0 {
 		return nil, errors.New("invalid initial size, must be greater than 0")
 	}
-	if fpRate <= 0 || fpRate >= 1 {
-		return nil, fmt.Errorf("invalid false positive rate, must be between 0 and 1, got %f", fpRate)
+	if p.FalsePositiveRate <= 0 || p.FalsePositiveRate >= 1 {
+		return nil, fmt.Errorf("invalid false positive rate, must be between 0 and 1, got %f", p.FalsePositiveRate)
 	}
-	if fpGrowth <= 0 {
-		return nil, fmt.Errorf("invalid false positive growth rate, must be greater than 0, got %f", fpGrowth)
+	if p.FalsePositiveGrowth <= 0 {
+		return nil, fmt.Errorf("invalid false positive growth rate, must be greater than 0, got %f", p.FalsePositiveGrowth)
 	}
 
-	bf, err := NewBloomFilterWithHasher(initialSize, fpRate, h)
+	bf, err := New(Params{
+		N:                 p.InitialSize,
+		FalsePositiveRate: p.FalsePositiveRate,
+		Hasher:            p.Hasher,
+		LockType:          p.LockType,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	// Return a new scalable Bloom filter struct with the initialized slice and parameters.
 	return &ScalableBloomFilter{
-		filters:  []*BloomFilter{bf}, // Start with one filter slice
-		fpRate:   fpRate,             // Set the initial false positive rate
-		fpGrowth: fpGrowth,           // Set the growth rate for false positives as the filter scales
-		n:        0,                  // Initialize with zero elements added
+		filters:  []*BloomFilter{bf},    // Start with one filter slice
+		fpRate:   p.FalsePositiveRate,   // Set the initial false positive rate
+		fpGrowth: p.FalsePositiveGrowth, // Set the growth rate for false positives as the filter scales
+		n:        0,                     // Initialize with zero elements added
 	}, nil
 }
 
-// NewScalableBloomFilter initializes a new scalable Bloom filter with the standard MurMur3 hasher.
-func NewScalableBloomFilter(initialSize uint64, fpRate float64, fpGrowth float64) (*ScalableBloomFilter, error) {
-	return NewScalableBloomFilterWithHasher(initialSize, fpRate, fpGrowth, NewMurMur3Hasher())
+// applyDefaultsScalable applies the default values to the parameters if they are not set.
+func applyDefaultsScalable(p *ParamsScalable) {
+	if p.Hasher == nil {
+		p.Hasher = NewMurMur3Hasher()
+	}
+	if p.LockType == NoLock {
+		p.LockType = ReadLock
+	}
 }
 
 // Add inserts the given item into the scalable Bloom filter.
@@ -113,7 +134,7 @@ func (sbf *ScalableBloomFilter) Add(data []byte) {
 	if float64(sbf.n) > currentCapacity {
 		newFpRate := sbf.fpRate * math.Pow(sbf.fpGrowth, float64(len(sbf.filters)))
 		// Create and append the new filter slice.
-		nbf, _ := NewBloomFilter(sbf.n, newFpRate)
+		nbf, _ := New(Params{N: sbf.n, FalsePositiveRate: newFpRate})
 		sbf.filters = append(sbf.filters, nbf)
 	}
 }

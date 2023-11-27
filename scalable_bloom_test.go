@@ -9,7 +9,7 @@ import (
 // TestScalableBloomFilter_AddAndTest will test that we can add an element to the filter and then find it.
 func TestScalableBloomFilter_AddAndTest(t *testing.T) {
 	t.Parallel()
-	sbf, _ := NewScalableBloomFilter(1000, 0.01, 2)
+	sbf, _ := NewScalable(ParamsScalable{InitialSize: 1000, FalsePositiveRate: 0.01, FalsePositiveGrowth: 2})
 
 	testItem := "example"
 	sbf.Add([]byte(testItem))
@@ -25,7 +25,7 @@ func TestScalableBloomFilter_FalsePositiveRate(t *testing.T) {
 	initialSize := uint64(1000)
 	fpRate := 0.01 // 1% false positive rate
 
-	sbf, err := NewScalableBloomFilter(initialSize, fpRate, 2)
+	sbf, err := NewScalable(ParamsScalable{InitialSize: initialSize, FalsePositiveRate: fpRate, FalsePositiveGrowth: 2})
 	if err != nil {
 		t.Errorf("Error initializing scalable Bloom filter: %s", err)
 		return
@@ -55,7 +55,7 @@ func TestScalableBloomFilter_FalsePositiveRate(t *testing.T) {
 // TestScalableBloomFilter_Scalability will test that the filter scales correctly by adding layers as needed.
 func TestScalableBloomFilter_Scalability(t *testing.T) {
 	t.Parallel()
-	sbf, err := NewScalableBloomFilter(1000, 0.01, 2)
+	sbf, err := NewScalable(ParamsScalable{InitialSize: 1000, FalsePositiveRate: 0.01, FalsePositiveGrowth: 2})
 	if err != nil {
 		t.Errorf("Error initializing scalable Bloom filter: %s", err)
 		return

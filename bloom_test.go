@@ -10,7 +10,7 @@ func TestBloomFilter_AddAndTest(t *testing.T) {
 	// Test adding an item and then checking its presence
 	n := uint64(10000)
 	p := 0.01
-	bf, err := NewBloomFilter(n, p)
+	bf, err := New(Params{N: n, FalsePositiveRate: p})
 	if err != nil {
 		t.Errorf("Failed to create Bloom filter: %s", err)
 	}
@@ -29,7 +29,7 @@ func TestBloomFilter_FalsePositiveRate(t *testing.T) {
 	// This is an empirical test and won't be 100% accurate.
 	n := uint64(1000000)
 	p := 0.00100
-	bf, err := NewBloomFilter(n, p)
+	bf, err := New(Params{N: n, FalsePositiveRate: p})
 	if err != nil {
 		t.Errorf("Failed to create Bloom filter: %s", err)
 	}
@@ -61,7 +61,7 @@ func TestBloomFilter_AddTestNonExistentItem(t *testing.T) {
 	// Test that a non-existent item returns false
 	n := uint64(1000)
 	p := 0.01
-	bf, err := NewBloomFilter(n, p)
+	bf, err := New(Params{N: n, FalsePositiveRate: p})
 	if err != nil {
 		t.Errorf("Failed to create Bloom filter: %s", err)
 	}

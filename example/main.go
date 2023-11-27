@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	bf, _ := gobloom.NewBloomFilter(1000, 0.01)
+	bf, _ := gobloom.New(gobloom.Params{N: 1000, FalsePositiveRate: 0.01})
 	bf.Add([]byte("foo"))
 	bf.Add([]byte("bar"))
 	bf.Add([]byte("baz"))
