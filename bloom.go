@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hash"
 	"math"
-	"sync"
 )
 
 var _ Interface = (*BloomFilter)(nil)
@@ -21,13 +20,11 @@ const (
 
 // BloomFilter represents a single Bloom filter structure.
 type BloomFilter struct {
-	m        uint64        // The number of bits in the bit set
-	bitSet   []uint64      // The bit array represented as a slice of uint64
-	k        uint64        // The number of hash functions to use
-	hashes   []hash.Hash64 // The hash functions to use
-	lockType LockType      // The lock type
-	rwmutex  sync.RWMutex  // Mutex to ensure thread safety
-	mutex    sync.Mutex    // Mutex to ensure thread safety
+	m      uint64        // The number of bits in the bit set
+	bitSet []uint64      // The bit array represented as a slice of uint64
+	k      uint64        // The number of hash functions to use
+	hashes []hash.Hash64 // The hash functions to use
+	mutex  Mutex         // Mutex to ensure thread safety
 }
 
 // Params represents the parameters for creating a new Bloom filter.
@@ -64,6 +61,7 @@ func New(p Params) (*BloomFilter, error) {
 		k:      k,
 		bitSet: make([]uint64, bitSetSize),
 		hashes: p.Hasher.GetHashes(k),
+		mutex:  NewMutex(p.LockType),
 	}, nil
 }
 
@@ -93,12 +91,9 @@ func getOptimalParams(n uint64, p float64) (uint64, uint64) {
 
 // Add adds an item to the Bloom filter.
 func (bf *BloomFilter) Add(data []byte) {
-	if bf.lockType == ExclusiveLock {
+	if bf.mutex != nil {
 		bf.mutex.Lock()
 		defer bf.mutex.Unlock()
-	} else if bf.lockType == ReadWriteLock {
-		bf.rwmutex.Lock()
-		defer bf.rwmutex.Unlock()
 	}
 	for _, hash := range bf.hashes {
 		hash.Reset()
@@ -112,12 +107,9 @@ func (bf *BloomFilter) Add(data []byte) {
 
 // Test checks if an item is in the Bloom filter.
 func (bf *BloomFilter) Test(data []byte) bool {
-	if bf.lockType == ExclusiveLock {
-		bf.mutex.Lock()
-		defer bf.mutex.Unlock()
-	} else if bf.lockType == ReadWriteLock {
-		bf.rwmutex.RLock()
-		defer bf.rwmutex.RUnlock()
+	if bf.mutex != nil {
+		bf.mutex.RLock()
+		defer bf.mutex.RUnlock()
 	}
 	for _, hash := range bf.hashes {
 		hash.Reset()
