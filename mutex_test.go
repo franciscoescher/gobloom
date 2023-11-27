@@ -3,31 +3,23 @@ package gobloom
 import (
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewMutex(t *testing.T) {
 	t.Parallel()
 
 	exclusiveMutex, err := NewMutex(LockTypeExclusive)
-	if err != nil {
-		t.Errorf("Expected no error, got %s", err)
-	}
-	if _, ok := exclusiveMutex.(*ExclusiveMutex); !ok {
-		t.Errorf("Expected ExclusiveMutex, got %T", exclusiveMutex)
-	}
+	assert.NoError(t, err)
+	assert.IsType(t, (*ExclusiveMutex)(nil), exclusiveMutex)
 
 	readWriteMutex, err := NewMutex(LockTypeReadWrite)
-	if err != nil {
-		t.Errorf("Expected no error, got %s", err)
-	}
-	if _, ok := readWriteMutex.(*ReadWriteMutex); !ok {
-		t.Errorf("Expected ReadWriteMutex, got %T", readWriteMutex)
-	}
+	assert.NoError(t, err)
+	assert.IsType(t, (*ReadWriteMutex)(nil), readWriteMutex)
 
 	_, err = NewMutex(0)
-	if err == nil {
-		t.Errorf("Expected error, got nil")
-	}
+	assert.Error(t, err)
 }
 
 func TestMutexLocks(t *testing.T) {
@@ -110,13 +102,12 @@ func TestMutexLocks(t *testing.T) {
 			tc := tc
 			t.Parallel()
 			done := make(chan bool)
-			timeout := time.After(1 * time.Second)
+			timeout := time.After(200 * time.Millisecond)
 			lock1, lock2, unlock2 := tc.getLockFuncs(tc.mutex)
 
 			lock1()
 
 			go func() {
-				// Attempt to acquire another read lock
 				lock2()
 				defer unlock2()
 				done <- true
@@ -124,15 +115,11 @@ func TestMutexLocks(t *testing.T) {
 
 			select {
 			case <-done:
-				if tc.lock {
-					t.Fatal("Test passed, but should have locked")
-				}
-				break
+				assert.Equal(t, false, tc.lock, "Test passed, but should have locked")
+				return
 			case <-timeout:
-				if !tc.lock {
-					t.Fatal("Test timed out")
-				}
-				break
+				assert.Equal(t, true, tc.lock, "Test got locked, but should have passed")
+				return
 			}
 		})
 	}

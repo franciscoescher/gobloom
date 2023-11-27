@@ -4,9 +4,10 @@ import (
 	"math/rand"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-// TestScalableBloomFilter_AddAndTest will test that we can add an element to the filter and then find it.
 func TestScalableBloomFilter_AddAndTest(t *testing.T) {
 	t.Parallel()
 	sbf, _ := NewScalable(ParamsScalable{InitialSize: 1000, FalsePositiveRate: 0.01, FalsePositiveGrowth: 2})
@@ -15,25 +16,18 @@ func TestScalableBloomFilter_AddAndTest(t *testing.T) {
 	sbf.Add([]byte(testItem))
 
 	b, err := sbf.Test([]byte(testItem))
-	if err != nil {
-		t.Errorf("Failed to test item '%s': %s", testItem, err)
-	}
-	if !b {
-		t.Errorf("Expected item '%s' to be in the filter", testItem)
-	}
+	assert.NoError(t, err, "Failed to test item '%s'", testItem)
+	assert.True(t, b, "Expected item '%s' to be in the filter", testItem)
 }
 
-// TestScalableBloomFilter_FalsePositiveRate will test that the false positive rate stays below the set threshold.
 func TestScalableBloomFilter_FalsePositiveRate(t *testing.T) {
 	t.Parallel()
 	initialSize := uint64(1000)
 	fpRate := 0.01 // 1% false positive rate
 
 	sbf, err := NewScalable(ParamsScalable{InitialSize: initialSize, FalsePositiveRate: fpRate, FalsePositiveGrowth: 2})
-	if err != nil {
-		t.Errorf("Error initializing scalable Bloom filter: %s", err)
-		return
-	}
+	assert.NoError(t, err, "Error initializing scalable Bloom filter")
+
 	numElements := uint64(500) // Test with more elements than the initial size
 	falsePositives := 0
 
@@ -47,28 +41,20 @@ func TestScalableBloomFilter_FalsePositiveRate(t *testing.T) {
 	for i := numElements; i < numElements+numTests; i++ {
 		testItem := []byte(strconv.FormatUint(i, 10))
 		b, err := sbf.Test(testItem)
-		if err != nil {
-			t.Errorf("Failed to test item '%s': %s", testItem, err)
-		}
+		assert.NoError(t, err, "Failed to test item '%s'", testItem)
 		if b {
 			falsePositives++
 		}
 	}
 
 	observedFpRate := float64(falsePositives) / float64(numTests)
-	if observedFpRate > 1.15*fpRate {
-		t.Errorf("False positive rate is too high: got %.3f%%, want at most %.3f%%", observedFpRate*100, fpRate*100)
-	}
+	assert.LessOrEqual(t, observedFpRate, 1.15*fpRate, "False positive rate is too high: got %.3f%%, want at most %.3f%%", observedFpRate*100, fpRate*100)
 }
 
-// TestScalableBloomFilter_Scalability will test that the filter scales correctly by adding layers as needed.
 func TestScalableBloomFilter_Scalability(t *testing.T) {
 	t.Parallel()
 	sbf, err := NewScalable(ParamsScalable{InitialSize: 1000, FalsePositiveRate: 0.01, FalsePositiveGrowth: 2})
-	if err != nil {
-		t.Errorf("Error initializing scalable Bloom filter: %s", err)
-		return
-	}
+	assert.NoError(t, err, "Error initializing scalable Bloom filter")
 
 	initialNumFilters := len(sbf.filters)
 
@@ -77,7 +63,5 @@ func TestScalableBloomFilter_Scalability(t *testing.T) {
 		sbf.Add([]byte(strconv.Itoa(rand.Int())))
 	}
 
-	if len(sbf.filters) == initialNumFilters {
-		t.Errorf("Expected scalable Bloom filter to grow, but it didn't")
-	}
+	assert.NotEqual(t, len(sbf.filters), initialNumFilters, "Expected scalable Bloom filter to grow, but it didn't")
 }

@@ -9,7 +9,7 @@ import (
 var _ Interface = (*BloomFilter)(nil)
 
 // LockType represents the type of lock to use.
-type LockType int
+type LockType uint
 
 const (
 	LockTypeDefault LockType = iota
