@@ -19,11 +19,21 @@ type ScalableBloomFilter struct {
 
 // ParamsScalable represents the parameters for creating a new scalable Bloom filter.
 type ParamsScalable struct {
-	// InitialSize is the estimated number of elements expected to be added to the Bloom filter initially.
+	// InitialSize is the estimated number of elements you expect to store in the bloom filter initially.
+	// This is not a hard limit but rather a guideline for preparing the initial Bloom filter layer.
+	// A size that's too small could lead to rapid addition of new slices, increasing memory usage,
+	// and a size that's too large could waste memory upfront.
 	InitialSize uint64
-	// FalsePositiveRate is the acceptable false positive rate for the first Bloom filter slice.
+	// FalsePositiveRate id the desired false positive probability for the first Bloom filter slice.
+	// It determines how likely it is that a 'Test' operation falsely indicates the presence of an element.
+	// A smaller false positive rate will increase the number of bits used in the initial filter (decreasing the chance of false positives),
+	// but also increase consumption of memory. Typical values are between 0.01 and 0.001 (1% - 0.1%).
 	FalsePositiveRate float64
 	// FalsePositiveGrowth is the growth rate of the false positive probability with the addition of each subsequent filter slice.
+	// If set to a value greater than 1, each new filter layer tolerates a higher false positive rate,
+	// which can be useful to postpone the addition of new layers and control memory usage.
+	// Commonly, this parameter should be set to a value close to 1 (e.g. 1.5 - 2),
+	// as a higher growth rate could lead to a rapidly deteriorating false positive rate.
 	FalsePositiveGrowth float64
 	// Hasher is the hash provider to use. Defaults to MurMur3Hasher.
 	Hasher Hasher
@@ -33,33 +43,12 @@ type ParamsScalable struct {
 	LockType LockType
 }
 
-// NewScalableBloom initializes a new scalable Bloom filter with an estimated initial size,
-// target false positive rate, and growth rate for the false positive probability with each new filter slice.
-// It is essential to carefully select these values based on the use-case requirements to maintain
-// system performance and desired accuracy as the dataset grows.
-//
-// Parameters:
-//
-//   - initialSize (uint64): The estimated number of elements you expect to store in the bloom filter initially.
-//     This is not a hard limit but rather a guideline for preparing the initial Bloom filter layer.
-//     A size that's too small could lead to rapid addition of new slices, increasing memory usage,
-//     and a size that's too large could waste memory upfront.
-//
-//   - fpRate (float64): The desired false positive probability for the first Bloom filter slice.
-//     It determines how likely it is that a 'Test' operation falsely indicates the presence of an element.
-//     A smaller fpRate will increase the number of bits used in the initial filter (decreasing the chance of false positives),
-//     but also increase consumption of memory. Typical values are between 0.01 and 0.001 (1% - 0.1%).
-//
-//   - fpGrowth (float64): The growth rate of the false positive probability with the addition of each subsequent filter slice.
-//     If set to a value greater than 1, each new filter layer tolerates a higher false positive rate,
-//     which can be useful to postpone the addition of new layers and control memory usage.
-//     Commonly, this parameter should be set to a value close to 1 (e.g. 1.5 - 2),
-//     as a higher growth rate could lead to a rapidly deteriorating false positive rate.
-//
+// NewScalable creates a new scalable Bloom filter.
 // Best Practices:
 //
-//   - Conduct a pre-analysis based on expected data growth to estimate initialSize and what fpGrowth rate could be appropriate.
-//     Consider both current and future memory availability and access patterns of the data.
+//   - Conduct a pre-analysis based on expected data growth to estimate initialSize and what false positive growth
+//     rate could be appropriate. Consider both current and future memory availability and access patterns of
+//     the data.
 //
 //   - Create logging or metrics around the scalable Bloom filter behavior, monitoring the number of slices created
 //     and memory consumption over time, which can provide insights into usage patterns and need for adjustment.
@@ -76,7 +65,6 @@ type ParamsScalable struct {
 //     as additional layers are added.
 func NewScalable(p ParamsScalable) (*ScalableBloomFilter, error) {
 	applyDefaultsScalable(&p)
-	// initialSize uint64, fpRate float64, fpGrowth float64, h Hasher, l LockType
 	if p.InitialSize <= 0 {
 		return nil, errors.New("invalid initial size, must be greater than 0")
 	}
