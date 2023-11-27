@@ -19,11 +19,16 @@ type ScalableBloomFilter struct {
 
 // ParamsScalable represents the parameters for creating a new scalable Bloom filter.
 type ParamsScalable struct {
-	InitialSize         uint64
-	FalsePositiveRate   float64
+	// InitialSize is the estimated number of elements expected to be added to the Bloom filter initially.
+	InitialSize uint64
+	// FalsePositiveRate is the acceptable false positive rate for the first Bloom filter slice.
+	FalsePositiveRate float64
+	// FalsePositiveGrowth is the growth rate of the false positive probability with the addition of each subsequent filter slice.
 	FalsePositiveGrowth float64
-	Hasher              Hasher
-	LockType            LockType
+	// Hasher is the hash provider to use. Defaults to MurMur3Hasher.
+	Hasher Hasher
+	// LockType is the lock type to use. Defaults to ExclusiveLock.
+	LockType LockType
 }
 
 // NewScalableBloom initializes a new scalable Bloom filter with an estimated initial size,
@@ -104,8 +109,8 @@ func applyDefaultsScalable(p *ParamsScalable) {
 	if p.Hasher == nil {
 		p.Hasher = NewMurMur3Hasher()
 	}
-	if p.LockType == NoLock {
-		p.LockType = ReadLock
+	if p.LockType == Default {
+		p.LockType = ExclusiveLock
 	}
 }
 

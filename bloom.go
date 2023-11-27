@@ -9,12 +9,14 @@ import (
 
 var _ Interface = (*BloomFilter)(nil)
 
+// LockType represents the type of lock to use.
 type LockType int
 
 const (
-	NoLock LockType = iota
-	ReadLock
-	WriteLock
+	Default LockType = iota
+	NoLock
+	ExclusiveLock
+	ReadWriteLock
 )
 
 // BloomFilter represents a single Bloom filter structure.
@@ -34,9 +36,9 @@ type Params struct {
 	N uint64
 	// FalsePositiveRate is the acceptable false positive rate.
 	FalsePositiveRate float64
-	// H is the hash provider to use.
+	// Hasher is the hash provider to use. Defaults to MurMur3Hasher.
 	Hasher Hasher
-	// L is the lock type to use.
+	// LockType is the lock type to use. Defaults to ReadLock.
 	LockType LockType
 }
 
@@ -67,8 +69,8 @@ func applyDefaults(p *Params) {
 	if p.Hasher == nil {
 		p.Hasher = NewMurMur3Hasher()
 	}
-	if p.LockType == NoLock {
-		p.LockType = ReadLock
+	if p.LockType == Default {
+		p.LockType = ExclusiveLock
 	}
 }
 
@@ -88,12 +90,12 @@ func getOptimalParams(n uint64, p float64) (uint64, uint64) {
 
 // Add adds an item to the Bloom filter.
 func (bf *BloomFilter) Add(data []byte) {
-	if bf.lockType == ReadLock {
-		bf.rwmutex.Lock()
-		defer bf.rwmutex.Unlock()
-	} else if bf.lockType == WriteLock {
+	if bf.lockType == ExclusiveLock {
 		bf.mutex.Lock()
 		defer bf.mutex.Unlock()
+	} else if bf.lockType == ReadWriteLock {
+		bf.rwmutex.Lock()
+		defer bf.rwmutex.Unlock()
 	}
 	for _, hash := range bf.hashes {
 		hash.Reset()
@@ -105,13 +107,14 @@ func (bf *BloomFilter) Add(data []byte) {
 	}
 }
 
+// Test checks if an item is in the Bloom filter.
 func (bf *BloomFilter) Test(data []byte) bool {
-	if bf.lockType == ReadLock {
-		bf.rwmutex.RLock()
-		defer bf.rwmutex.RUnlock()
-	} else if bf.lockType == WriteLock {
+	if bf.lockType == ExclusiveLock {
 		bf.mutex.Lock()
 		defer bf.mutex.Unlock()
+	} else if bf.lockType == ReadWriteLock {
+		bf.rwmutex.RLock()
+		defer bf.rwmutex.RUnlock()
 	}
 	for _, hash := range bf.hashes {
 		hash.Reset()
