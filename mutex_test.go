@@ -12,12 +12,18 @@ func TestNewMutex(t *testing.T) {
 
 	done := make(chan bool)
 	go func() {
-		exclusiveMutex := NewMutex(ExclusiveLock)
+		exclusiveMutex, err := NewMutex(ExclusiveLock)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
 		if _, ok := exclusiveMutex.(*ExclusiveMutex); !ok {
 			t.Errorf("Expected ExclusiveMutex, got %T", exclusiveMutex)
 		}
 
-		readWriteMutex := NewMutex(ReadWriteLock)
+		readWriteMutex, err := NewMutex(ReadWriteLock)
+		if err != nil {
+			t.Errorf("Expected no error, got %s", err)
+		}
 		if _, ok := readWriteMutex.(*ReadWriteMutex); !ok {
 			t.Errorf("Expected ReadWriteMutex, got %T", readWriteMutex)
 		}

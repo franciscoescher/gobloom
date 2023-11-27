@@ -1,6 +1,11 @@
 package gobloom
 
-import "sync"
+import (
+	"errors"
+	"sync"
+)
+
+var ErrInvalidLockType = errors.New("invalid lock type")
 
 type Mutex interface {
 	Lock()
@@ -9,14 +14,16 @@ type Mutex interface {
 	RUnlock()
 }
 
-func NewMutex(l LockType) Mutex {
+func NewMutex(l LockType) (Mutex, error) {
 	switch l {
+	case NoLock:
+		return nil, nil
 	case ExclusiveLock:
-		return &ExclusiveMutex{}
+		return &ExclusiveMutex{}, nil
 	case ReadWriteLock:
-		return &ReadWriteMutex{}
+		return &ReadWriteMutex{}, nil
 	}
-	return nil
+	return nil, ErrInvalidLockType
 }
 
 type ExclusiveMutex struct {

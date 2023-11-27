@@ -56,12 +56,16 @@ func New(p Params) (*BloomFilter, error) {
 	}
 	m, k := getOptimalParams(p.N, p.FalsePositiveRate)
 	bitSetSize := (m + 63) / 64 // Round up to the nearest 64 bits
+	mu, err := NewMutex(p.LockType)
+	if err != nil {
+		return nil, err
+	}
 	return &BloomFilter{
 		m:      m,
 		k:      k,
 		bitSet: make([]uint64, bitSetSize),
 		hashes: p.Hasher.GetHashes(k),
-		mutex:  NewMutex(p.LockType),
+		mutex:  mu,
 	}, nil
 }
 
