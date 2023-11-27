@@ -39,6 +39,9 @@ type Params struct {
 	// Hasher is the hash provider to use. Defaults to MurMur3Hasher.
 	Hasher Hasher
 	// LockType is the lock type to use. Defaults to ReadLock.
+	// LockType is the lock type to use. Defaults to ExclusiveLock.
+	// The use of ReadWriteLock can improve performance when there are many concurrent reads.
+	// If you have much more writes, avoid using ReadWriteLock, cause it may lead to reader starvation.
 	LockType LockType
 }
 
