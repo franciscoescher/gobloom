@@ -13,15 +13,18 @@ import (
 )
 
 func main() {
-  bf := gobloom.NewScalableBloomFilter(1000, 0.01, 2)
-  // bf, _ := gobloom.NewBloomFilter(1000, 0.01)
-  bf.Add([]byte("foo"))
-  bf.Add([]byte("bar"))
-  bf.Add([]byte("baz"))
+  bf, _ := gobloom.NewScalable(gobloom.ParamsScalable{
+		InitialSize:         1000,
+		FalsePositiveRate:   0.01,
+		FalsePositiveGrowth: 2,
+	})
+	bf.Add([]byte("foo"))
+	bf.Add([]byte("bar"))
+	bf.Add([]byte("baz"))
 
-  fmt.Println(bf.Test([]byte("foo"))) // true
-  fmt.Println(bf.Test([]byte("bar"))) // true
-  fmt.Println(bf.Test([]byte("baz"))) // true
-  fmt.Println(bf.Test([]byte("qux"))) // false
+	fmt.Println(bf.Test([]byte("foo"))) // true
+	fmt.Println(bf.Test([]byte("bar"))) // true
+	fmt.Println(bf.Test([]byte("baz"))) // true
+	fmt.Println(bf.Test([]byte("qux"))) // false
 }
 ```
