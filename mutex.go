@@ -8,19 +8,19 @@ import (
 var ErrInvalidLockType = errors.New("invalid lock type")
 
 type Mutex interface {
-	Lock()
-	Unlock()
+	WLock()
+	WUnlock()
 	RLock()
 	RUnlock()
 }
 
 func NewMutex(l LockType) (Mutex, error) {
 	switch l {
-	case NoLock:
+	case LockTypeNone:
 		return nil, nil
-	case ExclusiveLock:
+	case LockTypeExclusive:
 		return &ExclusiveMutex{}, nil
-	case ReadWriteLock:
+	case LockTypeReadWrite:
 		return &ReadWriteMutex{}, nil
 	}
 	return nil, ErrInvalidLockType
@@ -30,11 +30,11 @@ type ExclusiveMutex struct {
 	m sync.Mutex
 }
 
-func (l *ExclusiveMutex) Lock() {
+func (l *ExclusiveMutex) WLock() {
 	l.m.Lock()
 }
 
-func (l *ExclusiveMutex) Unlock() {
+func (l *ExclusiveMutex) WUnlock() {
 	l.m.Unlock()
 }
 
@@ -50,11 +50,11 @@ type ReadWriteMutex struct {
 	m sync.RWMutex
 }
 
-func (l *ReadWriteMutex) Lock() {
+func (l *ReadWriteMutex) WLock() {
 	l.m.Lock()
 }
 
-func (l *ReadWriteMutex) Unlock() {
+func (l *ReadWriteMutex) WUnlock() {
 	l.m.Unlock()
 }
 

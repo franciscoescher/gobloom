@@ -99,8 +99,8 @@ func applyDefaultsScalable(p *ParamsScalable) {
 	if p.Hasher == nil {
 		p.Hasher = NewMurMur3Hasher()
 	}
-	if p.LockType == Default {
-		p.LockType = ExclusiveLock
+	if p.LockType == LockTypeDefault {
+		p.LockType = LockTypeExclusive
 	}
 }
 

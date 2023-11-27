@@ -12,10 +12,10 @@ var _ Interface = (*BloomFilter)(nil)
 type LockType int
 
 const (
-	Default LockType = iota
-	NoLock
-	ExclusiveLock
-	ReadWriteLock
+	LockTypeDefault LockType = iota
+	LockTypeNone
+	LockTypeExclusive
+	LockTypeReadWrite
 )
 
 // BloomFilter represents a single Bloom filter structure.
@@ -74,8 +74,8 @@ func applyDefaults(p *Params) {
 	if p.Hasher == nil {
 		p.Hasher = NewMurMur3Hasher()
 	}
-	if p.LockType == Default {
-		p.LockType = ExclusiveLock
+	if p.LockType == LockTypeDefault {
+		p.LockType = LockTypeExclusive
 	}
 }
 
@@ -96,8 +96,8 @@ func getOptimalParams(n uint64, p float64) (uint64, uint64) {
 // Add adds an item to the Bloom filter.
 func (bf *BloomFilter) Add(data []byte) error {
 	if bf.mutex != nil {
-		bf.mutex.Lock()
-		defer bf.mutex.Unlock()
+		bf.mutex.WLock()
+		defer bf.mutex.WUnlock()
 	}
 	for _, hash := range bf.hashes {
 		hash.Reset()

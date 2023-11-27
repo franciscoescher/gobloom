@@ -1,135 +1,139 @@
 package gobloom
 
 import (
-	"sync"
 	"testing"
 	"time"
 )
 
 func TestNewMutex(t *testing.T) {
 	t.Parallel()
-	timeout := time.After(1 * time.Second) // 1-second timeout
 
-	done := make(chan bool)
-	go func() {
-		exclusiveMutex, err := NewMutex(ExclusiveLock)
-		if err != nil {
-			t.Errorf("Expected no error, got %s", err)
-		}
-		if _, ok := exclusiveMutex.(*ExclusiveMutex); !ok {
-			t.Errorf("Expected ExclusiveMutex, got %T", exclusiveMutex)
-		}
+	exclusiveMutex, err := NewMutex(LockTypeExclusive)
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	if _, ok := exclusiveMutex.(*ExclusiveMutex); !ok {
+		t.Errorf("Expected ExclusiveMutex, got %T", exclusiveMutex)
+	}
 
-		readWriteMutex, err := NewMutex(ReadWriteLock)
-		if err != nil {
-			t.Errorf("Expected no error, got %s", err)
-		}
-		if _, ok := readWriteMutex.(*ReadWriteMutex); !ok {
-			t.Errorf("Expected ReadWriteMutex, got %T", readWriteMutex)
-		}
-		done <- true
-	}()
+	readWriteMutex, err := NewMutex(LockTypeReadWrite)
+	if err != nil {
+		t.Errorf("Expected no error, got %s", err)
+	}
+	if _, ok := readWriteMutex.(*ReadWriteMutex); !ok {
+		t.Errorf("Expected ReadWriteMutex, got %T", readWriteMutex)
+	}
 
-	select {
-	case <-done:
-		// Test passed
-	case <-timeout:
-		t.Fatal("Test timed out")
+	_, err = NewMutex(0)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
 	}
 }
 
-func TestExclusiveMutexLockUnlock(t *testing.T) {
-	t.Parallel()
-	mutex := &ExclusiveMutex{}
-	done := make(chan bool)
-	timeout := time.After(1 * time.Second) // 1-second timeout
-
-	go func() {
-		mutex.Lock()
-		time.Sleep(100 * time.Millisecond)
-		mutex.Unlock()
-		done <- true
-	}()
-
-	select {
-	case <-done:
-		// Test passed
-	case <-timeout:
-		t.Fatal("Test timed out")
-	}
-}
-
-func TestExclusiveMutexReadLockUnlock(t *testing.T) {
-	t.Parallel()
-	mutex := &ExclusiveMutex{}
-	done := make(chan bool)
-	timeout := time.After(1 * time.Second) // 1-second timeout
-
-	go func() {
-		mutex.RLock()
-		time.Sleep(100 * time.Millisecond)
-		mutex.RUnlock()
-		done <- true
-	}()
-
-	select {
-	case <-done:
-		// Test passed
-	case <-timeout:
-		t.Fatal("Test timed out")
-	}
-}
-
-func TestReadWriteMutexLockUnlock(t *testing.T) {
-	t.Parallel()
-	mutex := &ReadWriteMutex{}
-	done := make(chan bool)
-	timeout := time.After(1 * time.Second)
-
-	go func() {
-		mutex.Lock()
-		time.Sleep(100 * time.Millisecond)
-		mutex.Unlock()
-		done <- true
-	}()
-
-	select {
-	case <-done:
-		// Continue with exclusive access test
-	case <-timeout:
-		t.Fatal("Test timed out")
+func TestMutexLocks(t *testing.T) {
+	type testCase struct {
+		name         string
+		mutex        Mutex
+		lock         bool
+		getLockFuncs func(mutex Mutex) (func(), func(), func())
 	}
 
-	// Testing for exclusive access
-	// ... [rest of the test]
-}
-
-func TestReadWriteMutexReadLockUnlock(t *testing.T) {
-	t.Parallel()
-	mutex := &ReadWriteMutex{}
-	var wg sync.WaitGroup
-	timeout := time.After(1 * time.Second)
-
-	for i := 0; i < 5; i++ {
-		wg.Add(1)
-		go func() {
-			mutex.RLock()
-			time.Sleep(100 * time.Millisecond)
-			mutex.RUnlock()
-			wg.Done()
-		}()
+	tests := []testCase{
+		{
+			name:  "ExclusiveMutex_Read_Read",
+			mutex: &ExclusiveMutex{},
+			getLockFuncs: func(mutex Mutex) (func(), func(), func()) {
+				return mutex.RLock, mutex.RLock, mutex.RUnlock
+			},
+			lock: true,
+		},
+		{
+			name:  "ExclusiveMutex_Write_Read",
+			mutex: &ExclusiveMutex{},
+			getLockFuncs: func(mutex Mutex) (func(), func(), func()) {
+				return mutex.WLock, mutex.RLock, mutex.RUnlock
+			},
+			lock: true,
+		},
+		{
+			name:  "ExclusiveMutex_Read_Write",
+			mutex: &ExclusiveMutex{},
+			getLockFuncs: func(mutex Mutex) (func(), func(), func()) {
+				return mutex.WLock, mutex.RLock, mutex.RUnlock
+			},
+			lock: true,
+		},
+		{
+			name:  "ReadWriteMutex_Write_Write",
+			mutex: &ExclusiveMutex{},
+			getLockFuncs: func(mutex Mutex) (func(), func(), func()) {
+				return mutex.WLock, mutex.WLock, mutex.WUnlock
+			},
+			lock: true,
+		},
+		{
+			name:  "ReadWriteMutex_Read_Read",
+			mutex: &ReadWriteMutex{},
+			getLockFuncs: func(mutex Mutex) (func(), func(), func()) {
+				return mutex.RLock, mutex.RLock, mutex.RUnlock
+			},
+			lock: false,
+		},
+		{
+			name:  "ReadWriteMutex_Write_Read",
+			mutex: &ReadWriteMutex{},
+			getLockFuncs: func(mutex Mutex) (func(), func(), func()) {
+				return mutex.WLock, mutex.RLock, mutex.RUnlock
+			},
+			lock: true,
+		},
+		{
+			name:  "ReadWriteMutex_Read_Write",
+			mutex: &ReadWriteMutex{},
+			getLockFuncs: func(mutex Mutex) (func(), func(), func()) {
+				return mutex.WLock, mutex.RLock, mutex.RUnlock
+			},
+			lock: true,
+		},
+		{
+			name:  "ExclusiveMutex_Write_Write",
+			mutex: &ReadWriteMutex{},
+			getLockFuncs: func(mutex Mutex) (func(), func(), func()) {
+				return mutex.WLock, mutex.WLock, mutex.WUnlock
+			},
+			lock: true,
+		},
 	}
 
-	done := make(chan bool)
-	go func() {
-		wg.Wait()
-		done <- true
-	}()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			t.Parallel()
+			done := make(chan bool)
+			timeout := time.After(1 * time.Second)
+			lock1, lock2, unlock2 := tc.getLockFuncs(tc.mutex)
 
-	select {
-	case <-done:
-		// Test passed
-	case <-timeout:
-		t.Fatal("Test timed out")
+			lock1()
+
+			go func() {
+				// Attempt to acquire another read lock
+				lock2()
+				defer unlock2()
+				done <- true
+			}()
+
+			select {
+			case <-done:
+				if tc.lock {
+					t.Fatal("Test passed, but should have locked")
+				}
+				break
+			case <-timeout:
+				if !tc.lock {
+					t.Fatal("Test timed out")
+				}
+				break
+			}
+		})
 	}
 }
